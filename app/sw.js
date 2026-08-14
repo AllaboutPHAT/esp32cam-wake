@@ -1,4 +1,4 @@
-const CACHE = "cam-app-v1";
+const CACHE = "cam-app-v2";
 const FILES = [
   "./",
   "./index.html",

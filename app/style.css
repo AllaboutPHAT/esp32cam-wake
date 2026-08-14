@@ -92,6 +92,91 @@ h1 {
   border-radius: 4px;
 }
 
+details.panel summary {
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+details.panel[open] summary {
+  margin-bottom: 14px;
+}
+
+.tune-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tune-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.tune-field output {
+  color: #93c5fd;
+  font-variant-numeric: tabular-nums;
+}
+
+.tune-field input[type="range"] {
+  accent-color: #3b82f6;
+}
+
+.tune-field select {
+  padding: 9px 12px;
+  font-size: 15px;
+  color: #f1f5f9;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  outline: none;
+}
+
+.tune-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.tune-check input {
+  width: 20px;
+  height: 20px;
+  accent-color: #3b82f6;
+}
+
+.tune-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.mini-btn {
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #f1f5f9;
+  background: #334155;
+  border: 1px solid #475569;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.mini-btn:hover {
+  background: #475569;
+}
+
+.tune-note {
+  font-size: 12px;
+  color: #64748b;
+}
+
 #view-wrap {
   position: relative;
   width: 100%;

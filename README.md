@@ -116,6 +116,17 @@ Camera cũng tự ngủ sau 20 giây không ai xem.
 | Ảnh quá tối | Thêm đèn chiếu sáng chỗ camera, hoặc tăng `s->set_ae_level` trong `main.cpp` |
 | Camera ngủ quá nhanh | Tăng `STREAM_IDLE_MS` |
 
+## Chỉnh hình ảnh trong app
+
+Trong app có mục **"Cài đặt hình ảnh"** (bấm mở ra):
+- Độ sáng, mức phơi sáng, độ khuếch đại ánh sáng, độ nét, độ phân giải.
+- Cài đặt được áp dụng ngay khi đang xem và được lưu lại cho lần sau.
+- Camera tối phòng → tăng **Độ sáng** hoặc bật **Chế độ thiếu sáng** (ảnh sáng hơn
+  nhưng fps giảm). Muốn fps cao hơn → giảm độ phân giải xuống QVGA.
+
+Các cài đặt này gửi tới endpoint `GET /api/tune` trên camera. Bạn cũng có thể chỉnh
+thẳng bằng trình duyệt, ví dụ: `http://192.168.123.200:81/api/tune?q=15&size=vga`.
+
 ## Tốc độ khung hình
 
 Camera chụp ảnh VGA (640x480), nén JPEG, stream MJPEG ~12-15 khung/giây trong

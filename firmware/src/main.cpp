@@ -51,9 +51,61 @@ unsigned long listenDeadline = 0;
 unsigned long lastFrameAt = 0;
 bool cameraReady = false;
 
+int tuneBrightness = 2;
+int tuneAeLevel = 0;
+gainceiling_t tuneGainCeiling = GAINCEILING_32X;
+uint8_t tuneQuality = FRAME_QUALITY;
+framesize_t tuneSize = FRAME_SIZE;
+bool tuneAec2 = false;
+
 WebServer server(HTTP_PORT);
 
 void goSleep();
+
+void applySensorTune() {
+  sensor_t *s = esp_camera_sensor_get();
+  if (!s) return;
+  s->set_framesize(s, tuneSize);
+  s->set_quality(s, tuneQuality);
+  s->set_vflip(s, SENSOR_VFLIP);
+  s->set_hmirror(s, SENSOR_HMIRROR);
+  s->set_aec2(s, tuneAec2 ? 1 : 0);
+  s->set_gainceiling(s, tuneGainCeiling);
+  s->set_ae_level(s, tuneAeLevel);
+  s->set_agc_gain(s, 0);
+  s->set_brightness(s, tuneBrightness);
+  s->set_contrast(s, 0);
+  s->set_saturation(s, 0);
+}
+
+framesize_t parseSize(const char *name) {
+  struct {
+    const char *n;
+    framesize_t f;
+  } map[] = {
+      {"qxga", FRAMESIZE_QXGA}, {"uxga", FRAMESIZE_UXGA}, {"sxga", FRAMESIZE_SXGA},
+      {"xga", FRAMESIZE_XGA},   {"hd", FRAMESIZE_HD},     {"svga", FRAMESIZE_SVGA},
+      {"vga", FRAMESIZE_VGA},   {"qvga", FRAMESIZE_QVGA}, {"hqvga", FRAMESIZE_HQVGA},
+      {"cif", FRAMESIZE_CIF},   {"qcif", FRAMESIZE_QCIF}, {NULL, FRAMESIZE_VGA}};
+  for (int i = 0; map[i].n; i++) {
+    if (strcmp(name, map[i].n) == 0) return map[i].f;
+  }
+  return FRAMESIZE_VGA;
+}
+
+gainceiling_t parseGain(const char *name) {
+  struct {
+    const char *n;
+    gainceiling_t g;
+  } map[] = {
+      {"2", GAINCEILING_2X},   {"4", GAINCEILING_4X},    {"8", GAINCEILING_8X},
+      {"16", GAINCEILING_16X}, {"32", GAINCEILING_32X},  {"64", GAINCEILING_64X},
+      {"128", GAINCEILING_128X}, {NULL, GAINCEILING_32X}};
+  for (int i = 0; map[i].n; i++) {
+    if (strcmp(name, map[i].n) == 0) return map[i].g;
+  }
+  return GAINCEILING_32X;
+}
 
 void startListenWindow() {
   listenDeadline = millis() + LISTEN_WINDOW_MS;
@@ -99,17 +151,9 @@ bool startCamera() {
   if (s) {
     s->set_framesize(s, FRAME_SIZE);
     s->set_quality(s, FRAME_QUALITY);
-    s->set_vflip(s, SENSOR_VFLIP);
-    s->set_hmirror(s, SENSOR_HMIRROR);
-    s->set_aec2(s, 0);
-    s->set_gainceiling(s, GAINCEILING_32X);
-    s->set_ae_level(s, 0);
-    s->set_agc_gain(s, 0);
-    s->set_brightness(s, 2);
-    s->set_contrast(s, 0);
-    s->set_saturation(s, 0);
   }
 
+  applySensorTune();
   cameraReady = true;
   return true;
 }
@@ -207,6 +251,37 @@ void handleFrame() {
   lastFrameAt = millis();
 }
 
+void handleTune() {
+  touch();
+  if (server.hasArg("brightness")) {
+    tuneBrightness = constrain(server.arg("brightness").toInt(), -2, 2);
+  }
+  if (server.hasArg("ae")) {
+    tuneAeLevel = constrain(server.arg("ae").toInt(), -2, 2);
+  }
+  if (server.hasArg("gain")) {
+    tuneGainCeiling = parseGain(server.arg("gain").c_str());
+  }
+  if (server.hasArg("q")) {
+    tuneQuality = (uint8_t)constrain(server.arg("q").toInt(), 1, 63);
+  }
+  if (server.hasArg("size")) {
+    tuneSize = parseSize(server.arg("size").c_str());
+  }
+  if (server.hasArg("aec2")) {
+    tuneAec2 = server.arg("aec2") == "1";
+  }
+
+  if (cameraReady) {
+    applySensorTune();
+  } else {
+    startCamera();
+  }
+
+  WiFiClient c = server.client();
+  c.print("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok");
+}
+
 void handleSleep() {
   WiFiClient c = server.client();
   c.print("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 3\r\nConnection: close\r\n\r\nbye");
@@ -272,6 +347,7 @@ void setup() {
   server.on("/frame", HTTP_GET, handleFrame);
   server.on("/api/sleep", HTTP_GET, handleSleep);
   server.on("/api/status", HTTP_GET, handleStatus);
+  server.on("/api/tune", HTTP_GET, handleTune);
   server.onNotFound(handleNotFound);
   server.begin();
 

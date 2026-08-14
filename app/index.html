@@ -25,6 +25,53 @@
     <p class="hint">Ví dụ: <code>esp32cam.local:81</code> hoặc <code>192.168.1.200:81</code></p>
   </section>
 
+  <details class="panel tune" id="tune-panel">
+    <summary>Cài đặt hình ảnh</summary>
+    <div class="tune-grid">
+      <label class="tune-field">
+        <span>Độ sáng <output id="t-brightness-val">2</output></span>
+        <input id="t-brightness" type="range" min="-2" max="2" step="1" value="2">
+      </label>
+      <label class="tune-field">
+        <span>Mức phơi sáng <output id="t-ae-val">0</output></span>
+        <input id="t-ae" type="range" min="-2" max="2" step="1" value="0">
+      </label>
+      <label class="tune-field">
+        <span>Khuếch đại ánh sáng (giảm nhiễu)</span>
+        <select id="t-gain">
+          <option value="2">2x</option>
+          <option value="4">4x</option>
+          <option value="8">8x</option>
+          <option value="16">16x</option>
+          <option value="32" selected>32x</option>
+          <option value="64">64x</option>
+          <option value="128">128x</option>
+        </select>
+      </label>
+      <label class="tune-field">
+        <span>Độ nét ảnh (tăng để nét hơn) <output id="t-q-val">18</output></span>
+        <input id="t-q" type="range" min="5" max="35" step="1" value="18">
+      </label>
+      <label class="tune-field">
+        <span>Độ phân giải</span>
+        <select id="t-size">
+          <option value="qvga">QVGA (320x240)</option>
+          <option value="vga" selected>VGA (640x480)</option>
+          <option value="svga">SVGA (800x600)</option>
+          <option value="hd">HD (1280x720)</option>
+        </select>
+      </label>
+      <label class="tune-field tune-check">
+        <span>Chế độ thiếu sáng (chậm hơn, sáng hơn)</span>
+        <input id="t-aec2" type="checkbox">
+      </label>
+    </div>
+    <div class="tune-actions">
+      <button id="t-reset" type="button" class="mini-btn">Đặt lại mặc định</button>
+      <span class="tune-note">Áp dụng ngay khi đang xem</span>
+    </div>
+  </details>
+
   <div id="view-wrap" hidden>
     <img id="view" alt="Hình ảnh camera" oncontextmenu="return false;">
     <div id="spinner" class="spinner" aria-label="Đang tải hình ảnh"></div>

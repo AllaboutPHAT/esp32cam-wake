@@ -13,6 +13,22 @@ let consecutiveErrors = 0;
 let lastFrameAt = 0;
 let viewStartedAt = 0;
 
+const TUNE_DEFAULTS = { brightness: 2, ae: 0, gain: "32", q: 18, size: "vga", aec2: "0" };
+let tune = loadTune();
+
+function loadTune() {
+  const merged = Object.assign({}, TUNE_DEFAULTS);
+  try {
+    const saved = JSON.parse(localStorage.getItem("camTune") || "null");
+    if (saved && typeof saved === "object") {
+      for (const k in merged) {
+        if (saved[k] !== undefined) merged[k] = saved[k];
+      }
+    }
+  } catch (e) {}
+  return merged;
+}
+
 const el = {
   host: document.getElementById("host"),
   btn: document.getElementById("btn"),
@@ -20,6 +36,16 @@ const el = {
   view: document.getElementById("view"),
   viewWrap: document.getElementById("view-wrap"),
   spinner: document.getElementById("spinner"),
+  tBrightness: document.getElementById("t-brightness"),
+  tBrightnessVal: document.getElementById("t-brightness-val"),
+  tAe: document.getElementById("t-ae"),
+  tAeVal: document.getElementById("t-ae-val"),
+  tGain: document.getElementById("t-gain"),
+  tQ: document.getElementById("t-q"),
+  tQVal: document.getElementById("t-q-val"),
+  tSize: document.getElementById("t-size"),
+  tAec2: document.getElementById("t-aec2"),
+  tReset: document.getElementById("t-reset"),
 };
 
 el.host.value = host;
@@ -36,6 +62,51 @@ function camUrl(path, h) {
 function setStatus(msg, cls) {
   el.status.textContent = msg;
   el.status.className = "status" + (cls ? " " + cls : "");
+}
+
+function readTuneFromUi() {
+  tune.brightness = parseInt(el.tBrightness.value, 10);
+  tune.ae = parseInt(el.tAe.value, 10);
+  tune.gain = el.tGain.value;
+  tune.q = parseInt(el.tQ.value, 10);
+  tune.size = el.tSize.value;
+  tune.aec2 = el.tAec2.checked ? "1" : "0";
+}
+
+function syncTuneToUi() {
+  el.tBrightness.value = tune.brightness;
+  el.tBrightnessVal.textContent = tune.brightness;
+  el.tAe.value = tune.ae;
+  el.tAeVal.textContent = tune.ae;
+  el.tGain.value = tune.gain;
+  el.tQ.value = tune.q;
+  el.tQVal.textContent = tune.q;
+  el.tSize.value = tune.size;
+  el.tAec2.checked = tune.aec2 === "1";
+}
+
+function saveTune() {
+  try {
+    localStorage.setItem("camTune", JSON.stringify(tune));
+  } catch (e) {}
+}
+
+function tuneUrl() {
+  return "http://" + host + "/api/tune?brightness=" + tune.brightness +
+    "&ae=" + tune.ae + "&gain=" + tune.gain + "&q=" + tune.q +
+    "&size=" + tune.size + "&aec2=" + tune.aec2 + "&t=" + Date.now();
+}
+
+function applyTune() {
+  try {
+    fetch(tuneUrl(), { mode: "no-cors" }).catch(() => {});
+  } catch (e) {}
+}
+
+function onTuneChange() {
+  readTuneFromUi();
+  saveTune();
+  if (state === "viewing") applyTune();
 }
 
 function sleep(ms) {
@@ -165,6 +236,7 @@ function startViewing() {
   el.viewWrap.hidden = false;
   el.spinner.hidden = false;
   setStatus("Đang kết nối hình ảnh...");
+  applyTune();
   if (isMjpegSupported()) {
     startMjpeg();
   } else {
@@ -236,4 +308,27 @@ el.btn.addEventListener("click", () => {
   }
 });
 
+el.tBrightness.addEventListener("input", () => {
+  el.tBrightnessVal.textContent = el.tBrightness.value;
+  onTuneChange();
+});
+el.tAe.addEventListener("input", () => {
+  el.tAeVal.textContent = el.tAe.value;
+  onTuneChange();
+});
+el.tQ.addEventListener("input", () => {
+  el.tQVal.textContent = el.tQ.value;
+  onTuneChange();
+});
+el.tGain.addEventListener("change", onTuneChange);
+el.tSize.addEventListener("change", onTuneChange);
+el.tAec2.addEventListener("change", onTuneChange);
+el.tReset.addEventListener("click", () => {
+  tune = Object.assign({}, TUNE_DEFAULTS);
+  syncTuneToUi();
+  saveTune();
+  if (state === "viewing") applyTune();
+});
+
+syncTuneToUi();
 updateButton();
