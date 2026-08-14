@@ -3,15 +3,12 @@ const FALLBACK_HOSTS = ["esp32cam.local:81"];
 const WAKE_INTERVAL_MS = 1500;
 const WAKE_TIMEOUT_MS = 40000;
 const WAKE_REQUEST_TIMEOUT_MS = 5000;
-const FRAME_INTERVAL_MS = 180;
+const FRAME_TIMEOUT_MS = 2500;
 const FRAME_ERROR_LIMIT = 8;
-const FRAME_STALE_MS = 5000;
 
 let state = "idle";
 let host = localStorage.getItem("camHost") || DEFAULT_HOST;
 
-let pollTimer = null;
-let watchdogTimer = null;
 let consecutiveErrors = 0;
 let lastFrameAt = 0;
 let viewStartedAt = 0;
@@ -98,7 +95,31 @@ async function wakeLoop() {
   return false;
 }
 
-function frameTick() {
+function frameFail() {
+  if (state !== "viewing") return;
+  consecutiveErrors++;
+  if (consecutiveErrors >= FRAME_ERROR_LIMIT) {
+    setStatus("Mất kết nối, đang đánh thức lại...", "warn");
+    state = "idle";
+    wakeAndView();
+    return;
+  }
+  setTimeout(() => {
+    if (state !== "viewing") return;
+    if (isMjpegSupported()) {
+      el.view.removeAttribute("src");
+      startMjpeg();
+    } else {
+      loopFrame();
+    }
+  }, 300);
+}
+
+function isMjpegSupported() {
+  return !/iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+function startMjpeg() {
   const img = el.view;
   img.onload = () => {
     consecutiveErrors = 0;
@@ -106,23 +127,35 @@ function frameTick() {
     el.spinner.hidden = true;
   };
   img.onerror = frameFail;
-  img.src = camUrl("/frame");
+  img.src = camUrl("/stream");
 }
 
-function watchdog() {
-  const ref = lastFrameAt || viewStartedAt;
-  if (Date.now() - ref > FRAME_STALE_MS) frameFail();
-}
-
-function frameFail() {
+function loopFrame() {
   if (state !== "viewing") return;
-  consecutiveErrors++;
-  if (consecutiveErrors >= FRAME_ERROR_LIMIT) {
-    stopPolling();
-    setStatus("Mất kết nối, đang đánh thức lại...", "warn");
-    state = "idle";
-    wakeAndView();
-  }
+  const img = el.view;
+  let done = false;
+  const timeout = setTimeout(() => {
+    if (done) return;
+    done = true;
+    frameFail();
+  }, FRAME_TIMEOUT_MS);
+
+  img.onload = () => {
+    if (done) return;
+    done = true;
+    clearTimeout(timeout);
+    consecutiveErrors = 0;
+    lastFrameAt = Date.now();
+    el.spinner.hidden = true;
+    loopFrame();
+  };
+  img.onerror = () => {
+    if (done) return;
+    done = true;
+    clearTimeout(timeout);
+    frameFail();
+  };
+  img.src = camUrl("/frame");
 }
 
 function startViewing() {
@@ -132,20 +165,14 @@ function startViewing() {
   el.viewWrap.hidden = false;
   el.spinner.hidden = false;
   setStatus("Đang kết nối hình ảnh...");
-  pollTimer = setInterval(frameTick, FRAME_INTERVAL_MS);
-  watchdogTimer = setInterval(watchdog, 500);
-  frameTick();
-}
-
-function stopPolling() {
-  clearInterval(pollTimer);
-  clearInterval(watchdogTimer);
-  pollTimer = null;
-  watchdogTimer = null;
+  if (isMjpegSupported()) {
+    startMjpeg();
+  } else {
+    loopFrame();
+  }
 }
 
 function stopViewing() {
-  stopPolling();
   state = "idle";
   el.viewWrap.hidden = true;
   el.spinner.hidden = true;

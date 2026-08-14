@@ -21,8 +21,8 @@ const unsigned long SLEEP_MS = 5000;
 const unsigned long STREAM_IDLE_MS = 20000;
 const unsigned long WIFI_CONNECT_TIMEOUT_MS = 15000;
 
-const framesize_t FRAME_SIZE = FRAMESIZE_HD;
-const uint8_t FRAME_QUALITY = 12;
+const framesize_t FRAME_SIZE = FRAMESIZE_VGA;
+const uint8_t FRAME_QUALITY = 18;
 
 const int SENSOR_VFLIP = 1;
 const int SENSOR_HMIRROR = 0;
@@ -101,7 +101,11 @@ bool startCamera() {
     s->set_quality(s, FRAME_QUALITY);
     s->set_vflip(s, SENSOR_VFLIP);
     s->set_hmirror(s, SENSOR_HMIRROR);
-    s->set_brightness(s, 0);
+    s->set_aec2(s, 0);
+    s->set_gainceiling(s, GAINCEILING_32X);
+    s->set_ae_level(s, 0);
+    s->set_agc_gain(s, 0);
+    s->set_brightness(s, 2);
     s->set_contrast(s, 0);
     s->set_saturation(s, 0);
   }
@@ -148,6 +152,37 @@ void handleWake() {
     Serial.println("wake -> streaming");
   } else {
     c.print("HTTP/1.1 500 Camera Error\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+  }
+}
+
+void handleStream() {
+  if (!cameraReady && !startCamera()) {
+    WiFiClient c = server.client();
+    c.print("HTTP/1.1 503 Not Ready\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+    return;
+  }
+  mode = STREAM;
+  lastFrameAt = millis();
+  WiFiClient c = server.client();
+  const char *b = "NhatPhatCam";
+  c.print("HTTP/1.1 200 OK\r\nContent-Type: multipart/x-mixed-replace; boundary=");
+  c.print(b);
+  c.print("\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n");
+  while (c.connected() && (long)(millis() - lastFrameAt) < (long)STREAM_IDLE_MS) {
+    camera_fb_t *fb = esp_camera_fb_get();
+    if (fb) {
+      c.print("--");
+      c.print(b);
+      c.print("\r\nContent-Type: image/jpeg\r\nContent-Length: ");
+      c.print((uint32_t)fb->len);
+      c.print("\r\n\r\n");
+      c.write(fb->buf, fb->len);
+      c.print("\r\n");
+      esp_camera_fb_return(fb);
+      lastFrameAt = millis();
+    } else {
+      delay(10);
+    }
   }
 }
 
@@ -233,6 +268,7 @@ void setup() {
   MDNS.addService("http", "tcp", HTTP_PORT);
 
   server.on("/api/wake", HTTP_GET, handleWake);
+  server.on("/stream", HTTP_GET, handleStream);
   server.on("/frame", HTTP_GET, handleFrame);
   server.on("/api/sleep", HTTP_GET, handleSleep);
   server.on("/api/status", HTTP_GET, handleStatus);

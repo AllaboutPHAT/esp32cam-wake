@@ -54,8 +54,8 @@ python -m platformio run -t upload
 | `LISTEN_WINDOW_MS` | `4000` | Thời gian lắng nghe mỗi lần thức dậy |
 | `SLEEP_MS` | `5000` | Thời gian ngủ giữa 2 lần thức dậy |
 | `STREAM_IDLE_MS` | `20000` | Tự ngủ lại sau bao lâu không ai xem |
-| `FRAME_SIZE` | `FRAMESIZE_HD` | Độ phân giải ảnh |
-| `FRAME_QUALITY` | `12` | Chất lượng JPEG (nhỏ hơn = nét hơn, tốn dữ liệu) |
+| `FRAME_SIZE` | `FRAMESIZE_VGA` | Độ phân giải ảnh (VGA cho fps cao; muốn nét hơn dùng `FRAMESIZE_SVGA`/`HD`) |
+| `FRAME_QUALITY` | `18` | Chất lượng JPEG (nhỏ hơn = nét hơn, tốn dữ liệu hơn) |
 
 Chân camera mặc định theo chuẩn bo ESP32-S3-CAM (SCCB: GPIO4/5, XCLK: GPIO15,
 PCLK: GPIO13, VSYNC: GPIO6, HREF: GPIO7, D0-D7: GPIO11/9/8/10/12/18/17/16).
@@ -113,7 +113,15 @@ Camera cũng tự ngủ sau 20 giây không ai xem.
 | Không ra ảnh, màn hình đen | Kiểm tra chân camera đúng bo (xem ở trên), thử `FRAMESIZE_VGA` |
 | Ảnh ngược/từ trên xuống | Đổi `SENSOR_VFLIP` / `SENSOR_HMIRROR` (0 hoặc 1) |
 | Ảnh mờ | Giảm `FRAME_QUALITY` xuống (ví dụ 8) |
+| Ảnh quá tối | Thêm đèn chiếu sáng chỗ camera, hoặc tăng `s->set_ae_level` trong `main.cpp` |
 | Camera ngủ quá nhanh | Tăng `STREAM_IDLE_MS` |
+
+## Tốc độ khung hình
+
+Camera chụp ảnh VGA (640x480), nén JPEG, stream MJPEG ~12-15 khung/giây trong
+mạng LAN. Nếu phòng tối, camera tự kéo dài phơi sáng nên fps giảm — hãy đảm bảo
+đủ ánh sáng để đạt fps tối đa. App tự động dùng stream MJPEG trên máy tính/Android
+(mượt), và dùng ảnh rời `/frame` trên iPhone.
 
 ## Bảo mật
 
