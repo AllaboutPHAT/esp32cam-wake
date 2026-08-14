@@ -135,14 +135,19 @@ void handleWake() {
   mode = STREAM;
   lastFrameAt = millis();
   WiFiClient c = server.client();
-  c.print("HTTP/1.1 ");
-  c.print(ok ? "200 OK" : "500 Camera Error");
-  c.print("\r\nContent-Type: text/plain\r\nContent-Length: ");
-  c.print(ok ? 5 : 6);
-  c.print("\r\nConnection: close\r\n\r\n");
-  c.print(ok ? "ready" : "error");
   if (ok) {
+    static const uint8_t WAKE_GIF[] = {
+        0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00, 0x01, 0x00, 0x80,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0x21, 0xf9, 0x04,
+        0x01, 0x00, 0x00, 0x00, 0x00, 0x2c, 0x00, 0x00, 0x00, 0x00, 0x01,
+        0x00, 0x01, 0x00, 0x00, 0x02, 0x02, 0x44, 0x01, 0x00, 0x3b};
+    c.print("HTTP/1.1 200 OK\r\nContent-Type: image/gif\r\nContent-Length: ");
+    c.print(sizeof(WAKE_GIF));
+    c.print("\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n");
+    c.write(WAKE_GIF, sizeof(WAKE_GIF));
     Serial.println("wake -> streaming");
+  } else {
+    c.print("HTTP/1.1 500 Camera Error\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
   }
 }
 
