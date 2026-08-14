@@ -17,7 +17,7 @@ IPAddress SUBNET(255, 255, 255, 0);
 
 const unsigned long LISTEN_WINDOW_MS = 4000;
 const unsigned long LISTEN_EXTEND_MS = 2000;
-const unsigned long SLEEP_MS = 3000;
+const unsigned long SLEEP_MS = 8000;
 const unsigned long STREAM_IDLE_MS = 20000;
 const unsigned long WIFI_CONNECT_TIMEOUT_MS = 15000;
 
