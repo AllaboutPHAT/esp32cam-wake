@@ -201,6 +201,10 @@ details.panel[open] summary {
   justify-content: center;
 }
 
+.spinner[hidden] {
+  display: none;
+}
+
 .spinner::after {
   content: "";
   width: 40px;
