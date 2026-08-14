@@ -48,9 +48,9 @@ python -m platformio run -t upload
 |---|---|---|
 | `WIFI_SSID` | `Nhat Phat` | Tên wifi nhà |
 | `WIFI_PASS` | `12345678` | Mật khẩu wifi |
-| `USE_STATIC_IP` | `false` | Đặt `true` để dùng IP cố định |
-| `LOCAL_IP` | `192.168.1.200` | IP cố định của camera (nếu bật) |
-| `GATEWAY` | `192.168.1.1` | IP modem/router |
+| `USE_STATIC_IP` | `true` | Dùng IP cố định (khuyên dùng, không phụ thuộc mDNS) |
+| `LOCAL_IP` | `192.168.123.200` | IP cố định của camera (sửa theo mạng nhà bạn) |
+| `GATEWAY` | `192.168.123.1` | IP modem/router |
 | `LISTEN_WINDOW_MS` | `4000` | Thời gian lắng nghe mỗi lần thức dậy |
 | `SLEEP_MS` | `5000` | Thời gian ngủ giữa 2 lần thức dậy |
 | `STREAM_IDLE_MS` | `20000` | Tự ngủ lại sau bao lâu không ai xem |
@@ -68,8 +68,8 @@ Khi cắm board, mở Serial Monitor (bấm `python -m platformio device monitor
 Camera cũng quảng bá tên mạng **`esp32cam.local`**. Cách khác: vào trang quản trị
 của router, xem danh sách thiết bị kết nối.
 
-> Khuyên dùng: đặt IP cố định (`USE_STATIC_IP = true`) để app luôn tìm được
-> camera nhanh và chắc chắn.
+> Dự án này đã đặt IP cố định `192.168.123.200` (mạng nhà `192.168.123.x`).
+> Nếu mạng nhà bạn khác, sửa `LOCAL_IP` và `GATEWAY` trong `main.cpp` cho khớp.
 
 ## 3. Chạy app
 
@@ -92,8 +92,10 @@ Chép thư mục `app` vào điện thoại, mở `index.html` bằng trình duy
 
 Ở ô **"Địa chỉ camera"**, gõ:
 
-- `esp32cam.local:81` (mặc định, dùng tên mạng), hoặc
-- `192.168.1.200:81` (nếu đã đặt IP cố định)
+- `192.168.123.200:81` (mặc định, IP cố định của camera — sửa theo mạng nhà bạn), hoặc
+- `esp32cam.local:81` (tên mạng, tự tìm IP)
+
+App tự động thử cả hai địa chỉ khi đánh thức.
 
 ## 4. Cách dùng
 

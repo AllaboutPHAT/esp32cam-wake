@@ -10,9 +10,9 @@ const char *WIFI_PASS = "12345678";
 const char *MDNS_HOSTNAME = "esp32cam";
 const uint16_t HTTP_PORT = 81;
 
-const bool USE_STATIC_IP = false;
-IPAddress LOCAL_IP(192, 168, 1, 200);
-IPAddress GATEWAY(192, 168, 1, 1);
+const bool USE_STATIC_IP = true;
+IPAddress LOCAL_IP(192, 168, 123, 200);
+IPAddress GATEWAY(192, 168, 123, 1);
 IPAddress SUBNET(255, 255, 255, 0);
 
 const unsigned long LISTEN_WINDOW_MS = 4000;

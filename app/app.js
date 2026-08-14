@@ -1,7 +1,8 @@
-const DEFAULT_HOST = "esp32cam.local:81";
+const DEFAULT_HOST = "192.168.123.200:81";
+const FALLBACK_HOSTS = ["esp32cam.local:81"];
 const WAKE_INTERVAL_MS = 1500;
-const WAKE_TIMEOUT_MS = 30000;
-const WAKE_REQUEST_TIMEOUT_MS = 6000;
+const WAKE_TIMEOUT_MS = 40000;
+const WAKE_REQUEST_TIMEOUT_MS = 5000;
 const FRAME_INTERVAL_MS = 180;
 const FRAME_ERROR_LIMIT = 8;
 const FRAME_STALE_MS = 5000;
@@ -31,8 +32,8 @@ el.host.addEventListener("change", () => {
   localStorage.setItem("camHost", host);
 });
 
-function camUrl(path) {
-  return "http://" + host + path + "?t=" + Date.now();
+function camUrl(path, h) {
+  return "http://" + (h || host) + path + "?t=" + Date.now();
 }
 
 function setStatus(msg, cls) {
@@ -49,7 +50,15 @@ function fire(path) {
   img.src = camUrl(path);
 }
 
-function wakeOnce() {
+function getCandidate(i) {
+  const seen = [host];
+  for (const h of FALLBACK_HOSTS) {
+    if (seen.indexOf(h) === -1) seen.push(h);
+  }
+  return seen[i % seen.length];
+}
+
+function wakeOnce(h) {
   return new Promise((resolve) => {
     const img = new Image();
     const timer = setTimeout(() => {
@@ -64,15 +73,25 @@ function wakeOnce() {
       clearTimeout(timer);
       resolve(false);
     };
-    img.src = camUrl("/api/wake");
+    img.src = camUrl("/api/wake", h);
   });
 }
 
 async function wakeLoop() {
   const deadline = Date.now() + WAKE_TIMEOUT_MS;
+  let n = 0;
   while (Date.now() < deadline) {
     if (state !== "waking") return false;
-    if (await wakeOnce()) return true;
+    const attemptHost = getCandidate(n);
+    if (await wakeOnce(attemptHost)) {
+      if (attemptHost !== host) {
+        host = attemptHost;
+        localStorage.setItem("camHost", host);
+        el.host.value = host;
+      }
+      return true;
+    }
+    n++;
     if (state !== "waking") return false;
     await sleep(WAKE_INTERVAL_MS);
   }
@@ -163,7 +182,14 @@ async function wakeAndView() {
 
   if (!ok) {
     state = "idle";
-    updateButton();
+updateButton();
+
+if ("serviceWorker" in navigator) {
+  const isSecure = location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1";
+  if (isSecure) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+}
     setStatus("Không đánh thức được camera. Kiểm tra nguồn, WiFi và địa chỉ.", "error");
     return;
   }
