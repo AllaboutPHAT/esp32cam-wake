@@ -195,7 +195,6 @@ function startMjpeg() {
   img.onload = () => {
     consecutiveErrors = 0;
     lastFrameAt = Date.now();
-    el.spinner.hidden = true;
   };
   img.onerror = frameFail;
   img.src = camUrl("/stream");
@@ -234,12 +233,13 @@ function startViewing() {
   lastFrameAt = 0;
   consecutiveErrors = 0;
   el.viewWrap.hidden = false;
-  el.spinner.hidden = false;
+  el.spinner.hidden = true;
   setStatus("Đang kết nối hình ảnh...");
   applyTune();
   if (isMjpegSupported()) {
     startMjpeg();
   } else {
+    el.spinner.hidden = false;
     loopFrame();
   }
 }
