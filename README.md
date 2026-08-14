@@ -52,7 +52,7 @@ python -m platformio run -t upload
 | `LOCAL_IP` | `192.168.123.200` | IP cố định của camera (sửa theo mạng nhà bạn) |
 | `GATEWAY` | `192.168.123.1` | IP modem/router |
 | `LISTEN_WINDOW_MS` | `4000` | Thời gian lắng nghe mỗi lần thức dậy |
-| `SLEEP_MS` | `5000` | Thời gian ngủ giữa 2 lần thức dậy |
+| `SLEEP_MS` | `3000` | Thời gian ngủ giữa 2 lần thức dậy (nhỏ hơn = khởi động nhanh hơn, tốn điện hơn) |
 | `STREAM_IDLE_MS` | `20000` | Tự ngủ lại sau bao lâu không ai xem |
 | `FRAME_SIZE` | `FRAMESIZE_VGA` | Độ phân giải ảnh (VGA cho fps cao; muốn nét hơn dùng `FRAMESIZE_SVGA`/`HD`) |
 | `FRAME_QUALITY` | `18` | Chất lượng JPEG (nhỏ hơn = nét hơn, tốn dữ liệu hơn) |
