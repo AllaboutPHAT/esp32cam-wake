@@ -1,6 +1,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ESPmDNS.h>
+#include <LittleFS.h>
 #include <esp_camera.h>
 #include <esp_sleep.h>
 
@@ -17,7 +18,7 @@ IPAddress SUBNET(255, 255, 255, 0);
 
 const unsigned long LISTEN_WINDOW_MS = 4000;
 const unsigned long LISTEN_EXTEND_MS = 2000;
-const unsigned long SLEEP_MS = 8000;
+const unsigned long SLEEP_MS = 3000;
 const unsigned long STREAM_IDLE_MS = 20000;
 const unsigned long WIFI_CONNECT_TIMEOUT_MS = 15000;
 
@@ -282,6 +283,28 @@ void handleTune() {
   c.print("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok");
 }
 
+void handleFs() {
+  touch();
+  String body = "total=" + String(LittleFS.totalBytes()) + " used=" + String(LittleFS.usedBytes()) + "\n";
+  body += "index.html=" + String(LittleFS.exists("/index.html") ? "yes" : "no") + "\n";
+  body += "app.js=" + String(LittleFS.exists("/app.js") ? "yes" : "no") + "\n";
+  File root = LittleFS.open("/");
+  if (root) {
+    File f = root.openNextFile();
+    while (f) {
+      body += String(f.name()) + " " + String(f.size()) + "\n";
+      f = root.openNextFile();
+    }
+  } else {
+    body += "open root FAILED\n";
+  }
+  WiFiClient c = server.client();
+  c.print("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ");
+  c.print(body.length());
+  c.print("\r\nConnection: close\r\n\r\n");
+  c.print(body);
+}
+
 void handleSleep() {
   WiFiClient c = server.client();
   c.print("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 3\r\nConnection: close\r\n\r\nbye");
@@ -297,6 +320,25 @@ void handleStatus() {
   c.print(strlen(msg));
   c.print("\r\nConnection: close\r\n\r\n");
   c.print(msg);
+}
+
+void handleRoot() {
+  touch();
+  File f = LittleFS.open("/index.html", "r");
+  WiFiClient c = server.client();
+  if (!f || !f.available()) {
+    c.print("HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+    return;
+  }
+  c.print("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: ");
+  c.print(f.size());
+  c.print("\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n");
+  uint8_t buf[512];
+  while (f.available()) {
+    size_t n = f.read(buf, sizeof(buf));
+    if (n > 0) c.write(buf, n);
+  }
+  f.close();
 }
 
 void handleNotFound() {
@@ -339,6 +381,12 @@ void setup() {
   Serial.print("IP: ");
   Serial.println(WiFi.localIP());
 
+  if (LittleFS.begin(true)) {
+    Serial.println("littlefs: OK");
+  } else {
+    Serial.println("littlefs: mount FAILED");
+  }
+
   WiFi.setSleep(false);
 
   MDNS.begin(MDNS_HOSTNAME);
@@ -350,6 +398,9 @@ void setup() {
   server.on("/api/sleep", HTTP_GET, handleSleep);
   server.on("/api/status", HTTP_GET, handleStatus);
   server.on("/api/tune", HTTP_GET, handleTune);
+  server.on("/api/fs", HTTP_GET, handleFs);
+  server.on("/", HTTP_GET, handleRoot);
+  server.serveStatic("/", LittleFS, "/");
   server.onNotFound(handleNotFound);
   server.begin();
 
